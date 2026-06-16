@@ -1,0 +1,92 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  email        String     @unique
+  passwordHash String
+  role         String     // "admin" | "manager"
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  managedBranch Branch?   @relation("BranchManager")
+}
+
+model Branch {
+  id         Int        @id @default(autoincrement())
+  name       String
+  code       String     @unique
+  address    String?
+  managerId  Int?       @unique
+  manager    User?      @relation("BranchManager", fields: [managerId], references: [id])
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  employees  Employee[]
+  attendance Attendance[]
+}
+
+model Employee {
+  id             Int          @id @default(autoincrement())
+  employeeNumber String       @unique
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  pin                String       @unique
+  branchId           Int
+  branch             Branch       @relation(fields: [branchId], references: [id])
+  status             String       @default("active") // "active" | "inactive"
+  scheduledStartTime String?
+  scheduledHours     Float?
+  profilePhoto       String?
+  createdAt      DateTime     @default(now())
+  attendance     Attendance[]
+  timesheets     Timesheet[]
+}
+
+model Attendance {
+  id                  Int      @id @default(autoincrement())
+  employeeId          Int
+  employee            Employee @relation(fields: [employeeId], references: [id])
+  branchId            Int
+  branch              Branch   @relation(fields: [branchId], references: [id])
+  attendanceDate      String   // YYYY-MM-DD
+  clockIn             DateTime
+  clockOut            DateTime?
+  totalHours          Float?
+  totalBreakMinutes   Int      @default(0)
+  clockInPhoto          String?
+  clockOutPhoto         String?
+  flaggedMissingSignout Boolean  @default(false)
+  breaks                Break[]
+  createdAt             DateTime @default(now())
+}
+
+model Break {
+  id            Int        @id @default(autoincrement())
+  attendanceId  Int
+  attendance    Attendance @relation(fields: [attendanceId], references: [id])
+  breakStart    DateTime
+  breakEnd      DateTime?
+  durationMinutes Int?
+}
+
+model Timesheet {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  date        String   // YYYY-MM-DD
+  taskName    String
+  description String?
+  hoursWorked Float
+  status      String   @default("draft") // draft | submitted | approved | rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
