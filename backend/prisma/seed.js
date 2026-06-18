@@ -38,43 +38,43 @@ async function main() {
     },
   });
 
-  // Shashi — Hashika Nilakshi Samaranayake
+  // Shashi — Hashika Nilakshi Samaranayake (b. 25 Jan 1984)
   await prisma.employee.upsert({
-    where: { pin: '2001' },
+    where: { pin: '2501' },
     update: { status: 'active' },
     create: {
       employeeNumber: 'KHB002',
       firstName: 'Shashi',
       lastName: 'Samaranayake',
-      pin: '2001',
-      branchId: branch.id,
-      status: 'active',
-    },
-  });
-
-  // Hezal — Nimesha Hezal Don Rigobert
-  await prisma.employee.upsert({
-    where: { pin: '2501' },
-    update: { status: 'active' },
-    create: {
-      employeeNumber: 'KHB003',
-      firstName: 'Hezal',
-      lastName: 'Rigobert',
       pin: '2501',
       branchId: branch.id,
       status: 'active',
     },
   });
 
-  // Dev — Davinder Pal Singh
+  // Hezal — Nimesha Hezal Don Rigobert (b. 6 Jan 1992)
   await prisma.employee.upsert({
-    where: { pin: '2003' },
+    where: { pin: '0601' },
+    update: { status: 'active' },
+    create: {
+      employeeNumber: 'KHB003',
+      firstName: 'Hezal',
+      lastName: 'Rigobert',
+      pin: '0601',
+      branchId: branch.id,
+      status: 'active',
+    },
+  });
+
+  // Dev — Davinder Pal Singh (b. 4 Feb 1985)
+  await prisma.employee.upsert({
+    where: { pin: '0402' },
     update: { status: 'active' },
     create: {
       employeeNumber: 'KHB004',
       firstName: 'Dev',
       lastName: 'Singh',
-      pin: '2003',
+      pin: '0402',
       branchId: branch.id,
       status: 'active',
     },
