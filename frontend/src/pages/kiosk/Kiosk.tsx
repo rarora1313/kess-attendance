@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { kioskAction, getEmployeeStatus, kioskSubmitTimesheet } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 
-type KioskState = 'idle' | 'identified' | 'success' | 'logTask' | 'taskDone' | 'error';
+type KioskState = 'idle' | 'identified' | 'success' | 'clockOutSummary' | 'logTask' | 'taskDone' | 'error';
 
 interface EmployeeStatus {
   employee: { firstName: string; lastName: string };
@@ -22,6 +22,7 @@ export default function Kiosk() {
   const [clock, setClock] = useState(new Date());
   const [cameraReady, setCameraReady] = useState(false);
   const [shiftHours, setShiftHours] = useState<number | null>(null);
+  const [clockOutInfo, setClockOutInfo] = useState<{ clockInTime: string; clockOutTime: string; breakMinutes: number } | null>(null);
   const [taskForm, setTaskForm] = useState({ taskName: '', hoursWorked: '', description: '' });
   const [taskError, setTaskError] = useState('');
 
@@ -42,6 +43,13 @@ export default function Kiosk() {
   useEffect(() => {
     if (state === 'success' || state === 'taskDone') {
       const t = setTimeout(resetToIdle, 5000);
+      return () => clearTimeout(t);
+    }
+  }, [state]);
+
+  useEffect(() => {
+    if (state === 'clockOutSummary') {
+      const t = setTimeout(() => setState('logTask'), 6000);
       return () => clearTimeout(t);
     }
   }, [state]);
@@ -79,6 +87,7 @@ export default function Kiosk() {
     setEmpStatus(null);
     setCapturedPhoto(null);
     setShiftHours(null);
+    setClockOutInfo(null);
     setTaskForm({ taskName: '', hoursWorked: '', description: '' });
     setTaskError('');
   }
@@ -111,7 +120,12 @@ export default function Kiosk() {
         const hours = result.totalHours ?? null;
         setShiftHours(hours);
         setTaskForm(f => ({ ...f, hoursWorked: hours ? String(hours) : '' }));
-        setState('logTask');
+        setClockOutInfo({
+          clockInTime: result.clockInTime,
+          clockOutTime: result.clockOutTime,
+          breakMinutes: result.totalBreakMinutes ?? 0,
+        });
+        setState('clockOutSummary');
       } else {
         const labels: Record<string, string> = {
           clockIn:    `Welcome, ${empStatus?.employee.firstName}! You are now signed in.`,
@@ -148,16 +162,39 @@ export default function Kiosk() {
 
   const timeStr = clock.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateStr = clock.toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const hideCamera = state === 'logTask' || state === 'taskDone';
+  const hideCamera = state === 'logTask' || state === 'taskDone' || state === 'clockOutSummary';
+
+  function fmtTime(iso: string) {
+    return new Date(iso).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-800 to-rose-700 flex flex-col items-center justify-center p-4">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-gray-700 to-orange-600 flex flex-col items-center justify-center p-2">
 
-      <div className="text-center text-white mb-5">
-        <p className="text-2xl font-bold tracking-wide text-white drop-shadow">Kess Hair & Beauty</p>
-        <p className="text-sm font-medium text-pink-200 mb-3 tracking-widest uppercase">Botany Branch</p>
-        <p className="text-5xl font-light tabular-nums">{timeStr}</p>
-        <p className="text-lg text-blue-200 mt-1">{dateStr}</p>
+      <div className="flex items-center justify-center gap-5 text-white mb-2 w-full max-w-sm">
+        {/* Kess Hair & Beauty Logo */}
+        <div className="flex flex-col items-center">
+          <div className="bg-white rounded-xl px-4 py-2 shadow-lg">
+            <div className="flex items-center justify-center gap-0">
+              <span style={{ color: '#F7941D', fontWeight: 900, fontSize: '1.6rem', fontFamily: 'Arial Black, sans-serif', letterSpacing: '-1px' }}>k</span>
+              <div className="flex flex-col justify-center gap-0.5 mx-1" style={{ marginTop: '2px' }}>
+                <div style={{ width: '22px', height: '3px', backgroundColor: '#888', borderRadius: '2px' }}></div>
+                <div style={{ width: '22px', height: '3px', backgroundColor: '#888', borderRadius: '2px' }}></div>
+                <div style={{ width: '22px', height: '3px', backgroundColor: '#888', borderRadius: '2px' }}></div>
+              </div>
+              <span style={{ color: '#F7941D', fontWeight: 900, fontSize: '1.6rem', fontFamily: 'Arial Black, sans-serif', letterSpacing: '-1px' }}>ss</span>
+            </div>
+            <div style={{ borderTop: '2px solid #F7941D', marginTop: '2px', paddingTop: '2px' }}>
+              <p style={{ color: '#555', fontSize: '0.6rem', letterSpacing: '3px', textAlign: 'center', fontWeight: 500 }}>hair and beauty</p>
+            </div>
+          </div>
+          <p className="text-xs font-medium text-orange-200 mt-1 tracking-widest uppercase">Botany</p>
+        </div>
+        {/* Clock */}
+        <div className="text-center">
+          <p className="text-4xl font-light tabular-nums">{timeStr}</p>
+          <p className="text-sm text-orange-100">{dateStr}</p>
+        </div>
       </div>
 
       <canvas ref={canvasRef} className="hidden" />
@@ -166,7 +203,7 @@ export default function Kiosk() {
 
         {/* Camera — hidden on task form screens */}
         {!hideCamera && (
-          <div className="relative bg-gray-900 w-full aspect-video overflow-hidden">
+          <div className="relative bg-gray-900 w-full overflow-hidden" style={{ height: '220px' }}>
             <video ref={videoRef} autoPlay playsInline muted
               className={`w-full h-full object-cover ${capturedPhoto ? 'hidden' : 'block'}`} />
             {capturedPhoto && (
@@ -194,12 +231,12 @@ export default function Kiosk() {
           </div>
         )}
 
-        <div className="p-5">
+        <div className="p-3">
 
           {/* IDLE — numpad */}
           {state === 'idle' && (
             <>
-              <div className="flex justify-center gap-3 mb-5 h-8 items-center">
+              <div className="flex justify-center gap-3 mb-3 h-7 items-center">
                 {pin.length === 0
                   ? <p className="text-gray-300 text-sm tracking-widest">Enter PIN</p>
                   : Array.from({ length: pin.length }).map((_, i) => (
@@ -209,7 +246,7 @@ export default function Kiosk() {
               <div className="grid grid-cols-3 gap-2">
                 {NUMPAD_KEYS.map(key => (
                   <button key={key} onClick={() => handleNumpad(key)}
-                    className={`py-4 rounded-xl text-xl font-semibold transition-all active:scale-95 select-none
+                    className={`py-3 rounded-xl text-xl font-semibold transition-all active:scale-95 select-none
                       ${key === '→' ? 'bg-blue-600 text-white hover:bg-blue-700'
                         : key === '⌫' ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                         : 'bg-gray-50 text-gray-800 hover:bg-gray-100 border border-gray-200'}`}>
@@ -270,6 +307,39 @@ export default function Kiosk() {
               <div className="text-4xl mb-2">✓</div>
               <p className="text-base font-semibold text-green-700">{message}</p>
               <p className="text-xs text-gray-400 mt-2">Returning in 5 seconds…</p>
+            </div>
+          )}
+
+          {/* CLOCK OUT SUMMARY */}
+          {state === 'clockOutSummary' && clockOutInfo && (
+            <div className="text-center py-4">
+              <div className="text-4xl mb-2">👋</div>
+              <p className="text-xl font-bold text-gray-800">Goodbye, {empStatus?.employee.firstName}!</p>
+              <div className="mt-4 bg-gray-50 rounded-xl p-4 text-left space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Signed in</span>
+                  <span className="font-semibold text-gray-800">{fmtTime(clockOutInfo.clockInTime)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Signed out</span>
+                  <span className="font-semibold text-gray-800">{fmtTime(clockOutInfo.clockOutTime)}</span>
+                </div>
+                {clockOutInfo.breakMinutes > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Break</span>
+                    <span className="font-semibold text-gray-800">{clockOutInfo.breakMinutes} min</span>
+                  </div>
+                )}
+                <div className="border-t border-gray-200 pt-2 flex justify-between">
+                  <span className="text-gray-700 font-medium">Total worked</span>
+                  <span className="text-lg font-bold text-green-600">{shiftHours} hrs</span>
+                </div>
+              </div>
+              <button onClick={() => setState('logTask')}
+                className="mt-4 w-full py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors text-sm">
+                Log Tasks →
+              </button>
+              <p className="text-xs text-gray-400 mt-2">Continuing in 6 seconds…</p>
             </div>
           )}
 
@@ -363,7 +433,7 @@ export default function Kiosk() {
         </div>
       </div>
 
-      <p className="mt-5 text-pink-300 text-xs">
+      <p className="mt-2 text-orange-200 text-xs">
         <a href="/login" className="underline">Admin / Manager Login</a>
       </p>
     </div>

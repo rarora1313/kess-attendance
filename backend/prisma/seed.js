@@ -18,10 +18,24 @@ async function main() {
     },
   });
 
+  // Shashi manager login
+  const shashiHash = await bcrypt.hash('shashi123', 10);
+  const shashiUser = await prisma.user.upsert({
+    where: { email: 'shashi@kesshairdbeauty.com' },
+    update: {},
+    create: {
+      firstName: 'Shashi',
+      lastName: 'Samaranayake',
+      email: 'shashi@kesshairdbeauty.com',
+      passwordHash: shashiHash,
+      role: 'manager',
+    },
+  });
+
   const branch = await prisma.branch.upsert({
     where: { code: 'BOTANY' },
-    update: {},
-    create: { name: 'Kess Hair & Beauty — Botany', code: 'BOTANY', address: 'Botany, Auckland' },
+    update: { managerId: shashiUser.id },
+    create: { name: 'Kess Hair & Beauty — Botany', code: 'BOTANY', address: 'Botany, Auckland', managerId: shashiUser.id },
   });
 
   // Shashi — Hashika Nilakshi Samaranayake (b. 25 Jan 1984) PIN: 2501

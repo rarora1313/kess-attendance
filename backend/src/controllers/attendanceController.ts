@@ -102,17 +102,26 @@ export async function kioskAction(req: Request, res: Response): Promise<void> {
       res.status(400).json({ error: 'Invalid action' }); return;
   }
 
-  // Return totalHours on clockOut so kiosk can pre-fill the timesheet form
   let totalHours: number | null = null;
+  let clockInTime: Date | null = null;
+  let clockOutTime: Date | null = null;
+  let totalBreakMinutes: number = 0;
+
   if (action === 'clockOut' && attendance) {
     const updated = await prisma.attendance.findUnique({ where: { id: attendance.id } });
     totalHours = updated?.totalHours ?? null;
+    clockInTime = attendance.clockIn;
+    clockOutTime = updated?.clockOut ?? null;
+    totalBreakMinutes = attendance.totalBreakMinutes;
   }
 
   res.json({
     employee: { id: employee.id, firstName: employee.firstName, lastName: employee.lastName },
     action,
     totalHours,
+    clockInTime,
+    clockOutTime,
+    totalBreakMinutes,
   });
 }
 
