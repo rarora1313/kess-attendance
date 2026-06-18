@@ -24,24 +24,10 @@ async function main() {
     create: { name: 'Kess Hair & Beauty — Botany', code: 'BOTANY', address: 'Botany, Auckland' },
   });
 
-  // Existing test staff
+  // Shashi — Hashika Nilakshi Samaranayake (b. 25 Jan 1984) PIN: 2501
   await prisma.employee.upsert({
-    where: { pin: '1234' },
-    update: { status: 'active' },
-    create: {
-      employeeNumber: 'KHB001',
-      firstName: 'Staff',
-      lastName: 'Member',
-      pin: '1234',
-      branchId: branch.id,
-      status: 'active',
-    },
-  });
-
-  // Shashi — Hashika Nilakshi Samaranayake (b. 25 Jan 1984)
-  await prisma.employee.upsert({
-    where: { pin: '2501' },
-    update: { status: 'active' },
+    where: { employeeNumber: 'KHB002' },
+    update: { pin: '2501', status: 'active' },
     create: {
       employeeNumber: 'KHB002',
       firstName: 'Shashi',
@@ -52,10 +38,10 @@ async function main() {
     },
   });
 
-  // Hezal — Nimesha Hezal Don Rigobert (b. 6 Jan 1992)
+  // Hezal — Nimesha Hezal Don Rigobert (b. 6 Jan 1992) PIN: 0601
   await prisma.employee.upsert({
-    where: { pin: '0601' },
-    update: { status: 'active' },
+    where: { employeeNumber: 'KHB003' },
+    update: { pin: '0601', status: 'active' },
     create: {
       employeeNumber: 'KHB003',
       firstName: 'Hezal',
@@ -66,10 +52,10 @@ async function main() {
     },
   });
 
-  // Dev — Davinder Pal Singh (b. 4 Feb 1985)
+  // Dev — Davinder Pal Singh (b. 4 Feb 1985) PIN: 0402
   await prisma.employee.upsert({
-    where: { pin: '0402' },
-    update: { status: 'active' },
+    where: { employeeNumber: 'KHB004' },
+    update: { pin: '0402', status: 'active' },
     create: {
       employeeNumber: 'KHB004',
       firstName: 'Dev',
