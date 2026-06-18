@@ -54,13 +54,13 @@ async function main() {
 
   // Hezal — Nimesha Hezal Don Rigobert
   await prisma.employee.upsert({
-    where: { pin: '2002' },
+    where: { pin: '2501' },
     update: { status: 'active' },
     create: {
       employeeNumber: 'KHB003',
       firstName: 'Hezal',
       lastName: 'Rigobert',
-      pin: '2002',
+      pin: '2501',
       branchId: branch.id,
       status: 'active',
     },
