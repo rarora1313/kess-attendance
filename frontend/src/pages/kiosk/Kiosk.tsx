@@ -41,8 +41,12 @@ export default function Kiosk() {
   }, []);
 
   useEffect(() => {
-    if (state === 'success' || state === 'taskDone') {
+    if (state === 'success') {
       const t = setTimeout(resetToIdle, 5000);
+      return () => clearTimeout(t);
+    }
+    if (state === 'taskDone') {
+      const t = setTimeout(resetToIdle, 3000);
       return () => clearTimeout(t);
     }
   }, [state]);
@@ -142,14 +146,14 @@ export default function Kiosk() {
   }
 
   async function handleTaskSubmit() {
-    if (!taskForm.taskName || !taskForm.hoursWorked) {
-      setTaskError('Please enter task name and hours.');
+    if (!taskForm.hoursWorked) {
+      setTaskError('Please enter hours worked.');
       return;
     }
     try {
       await kioskSubmitTimesheet({
         pin,
-        taskName: taskForm.taskName,
+        taskName: 'Shift',
         hoursWorked: taskForm.hoursWorked,
         description: taskForm.description,
         date: new Date().toISOString().slice(0, 10),
@@ -343,67 +347,35 @@ export default function Kiosk() {
             </div>
           )}
 
-          {/* LOG TASK — after sign out */}
+          {/* LOG TASK — simplified: hours only */}
           {state === 'logTask' && (
             <>
               <div className="text-center mb-4">
-                <div className="text-3xl mb-1">✓</div>
-                <p className="font-semibold text-green-700">
-                  Goodbye, {empStatus?.employee.firstName}!
-                </p>
-                <p className="text-sm text-gray-500 mt-2 font-medium">
-                  Log your tasks for today
-                </p>
-                {shiftHours && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    Shift duration: {shiftHours}h
-                  </p>
-                )}
+                <p className="text-sm font-medium text-gray-500">Confirm hours worked</p>
               </div>
 
               {taskError && (
                 <p className="text-red-500 text-xs mb-3 text-center">{taskError}</p>
               )}
 
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Task Name *</label>
-                  <input
-                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    placeholder="e.g. Customer service, Restocking..."
-                    value={taskForm.taskName}
-                    onChange={e => setTaskForm(f => ({ ...f, taskName: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Hours Worked *</label>
-                  <input
-                    type="number" step="0.25" min="0" max="24"
-                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"
-                    placeholder="e.g. 4.5"
-                    value={taskForm.hoursWorked}
-                    onChange={e => setTaskForm(f => ({ ...f, hoursWorked: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Description (optional)</label>
-                  <textarea
-                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 resize-none"
-                    rows={2}
-                    placeholder="Any notes about your work today..."
-                    value={taskForm.description}
-                    onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
+              <div className="bg-gray-50 rounded-xl p-4 text-center mb-4">
+                <p className="text-xs text-gray-500 mb-1">Hours this shift</p>
+                <input
+                  type="number" step="0.25" min="0" max="24"
+                  className="w-32 text-center text-3xl font-bold text-green-600 bg-transparent border-b-2 border-green-400 focus:outline-none focus:border-green-600"
+                  value={taskForm.hoursWorked}
+                  onChange={e => setTaskForm(f => ({ ...f, hoursWorked: e.target.value }))}
+                />
+                <p className="text-xs text-gray-400 mt-1">hrs</p>
               </div>
 
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-2">
                 <button onClick={handleTaskSubmit}
-                  className="flex-1 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors text-sm">
+                  className="flex-1 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors">
                   Submit
                 </button>
                 <button onClick={resetToIdle}
-                  className="flex-1 py-3 border-2 border-gray-200 text-gray-500 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                  className="flex-1 py-3 border-2 border-gray-200 text-gray-400 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm">
                   Skip
                 </button>
               </div>
@@ -413,10 +385,9 @@ export default function Kiosk() {
           {/* TASK DONE */}
           {state === 'taskDone' && (
             <div className="text-center py-6">
-              <div className="text-4xl mb-2">📋</div>
-              <p className="font-semibold text-blue-700">Timesheet submitted!</p>
-              <p className="text-sm text-gray-500 mt-1">Your manager will review it shortly.</p>
-              <p className="text-xs text-gray-400 mt-3">Returning in 5 seconds…</p>
+              <div className="text-4xl mb-2">✓</div>
+              <p className="font-semibold text-green-700">Hours submitted!</p>
+              <p className="text-xs text-gray-400 mt-3">Camera ready for next person…</p>
             </div>
           )}
 
