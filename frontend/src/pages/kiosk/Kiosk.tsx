@@ -8,6 +8,7 @@ interface EmployeeStatus {
   employee: { firstName: string; lastName: string };
   clockedIn: boolean;
   onBreak: boolean;
+  missedSignOut: string | null;
 }
 
 const NUMPAD_KEYS = ['1','2','3','4','5','6','7','8','9','⌫','0','→'];
@@ -264,44 +265,71 @@ export default function Kiosk() {
           {/* IDENTIFIED — action buttons */}
           {state === 'identified' && empStatus && (
             <>
-              <div className="text-center mb-5">
+              <div className="text-center mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Hi, {empStatus.employee.firstName}!</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  {empStatus.clockedIn
-                    ? empStatus.onBreak ? 'You are on a break.' : 'You are signed in.'
-                    : 'You are not signed in.'}
-                </p>
+                {!empStatus.missedSignOut && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    {empStatus.clockedIn
+                      ? empStatus.onBreak ? 'You are on a break.' : 'You are signed in.'
+                      : 'You are not signed in.'}
+                  </p>
+                )}
               </div>
-              <div className="space-y-2">
-                {!empStatus.clockedIn && (
-                  <button onClick={() => handleAction('clockIn')}
-                    className="w-full py-4 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors text-lg">
-                    Sign In
-                  </button>
-                )}
-                {empStatus.clockedIn && !empStatus.onBreak && (
-                  <button onClick={() => handleAction('breakStart')}
-                    className="w-full py-3 bg-yellow-500 text-white font-semibold rounded-xl hover:bg-yellow-600 transition-colors">
-                    Start Break
-                  </button>
-                )}
-                {empStatus.clockedIn && empStatus.onBreak && (
-                  <button onClick={() => handleAction('breakEnd')}
-                    className="w-full py-3 bg-yellow-500 text-white font-semibold rounded-xl hover:bg-yellow-600 transition-colors">
-                    End Break
-                  </button>
-                )}
-                {empStatus.clockedIn && (
+
+              {/* Missed sign-out warning */}
+              {empStatus.missedSignOut && (
+                <div className="space-y-3">
+                  <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-3 text-center">
+                    <p className="text-orange-700 font-bold text-sm">You forgot to sign out!</p>
+                    <p className="text-orange-600 text-xs mt-1">
+                      Your last shift on <span className="font-semibold">{new Date(empStatus.missedSignOut + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</span> was not closed.
+                    </p>
+                    <p className="text-orange-500 text-xs mt-1">Please sign out and enter your hours first.</p>
+                  </div>
                   <button onClick={() => handleAction('clockOut')}
-                    className="w-full py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors text-lg">
-                    Sign Out
+                    className="w-full py-4 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition-colors">
+                    Sign Out & Enter Hours
                   </button>
-                )}
-                <button onClick={resetToIdle}
-                  className="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition-colors">
-                  Cancel
-                </button>
-              </div>
+                  <button onClick={resetToIdle}
+                    className="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {/* Normal buttons */}
+              {!empStatus.missedSignOut && (
+                <div className="space-y-2">
+                  {!empStatus.clockedIn && (
+                    <button onClick={() => handleAction('clockIn')}
+                      className="w-full py-4 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors text-lg">
+                      Sign In
+                    </button>
+                  )}
+                  {empStatus.clockedIn && !empStatus.onBreak && (
+                    <button onClick={() => handleAction('breakStart')}
+                      className="w-full py-3 bg-yellow-500 text-white font-semibold rounded-xl hover:bg-yellow-600 transition-colors">
+                      Start Break
+                    </button>
+                  )}
+                  {empStatus.clockedIn && empStatus.onBreak && (
+                    <button onClick={() => handleAction('breakEnd')}
+                      className="w-full py-3 bg-yellow-500 text-white font-semibold rounded-xl hover:bg-yellow-600 transition-colors">
+                      End Break
+                    </button>
+                  )}
+                  {empStatus.clockedIn && (
+                    <button onClick={() => handleAction('clockOut')}
+                      className="w-full py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors text-lg">
+                      Sign Out
+                    </button>
+                  )}
+                  <button onClick={resetToIdle}
+                    className="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              )}
             </>
           )}
 

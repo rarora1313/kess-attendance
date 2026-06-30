@@ -31,15 +31,24 @@ export async function kioskAction(req: Request, res: Response): Promise<void> {
   }
 
   const today = new Date().toISOString().slice(0, 10);
+
+  // Find any open session — including previous days (missed sign-out)
   let attendance = await prisma.attendance.findFirst({
-    where: { employeeId: employee.id, attendanceDate: today, clockOut: null },
+    where: { employeeId: employee.id, clockOut: null },
     include: { breaks: { where: { breakEnd: null } } },
     orderBy: { clockIn: 'desc' },
   });
 
   switch (action) {
     case 'clockIn': {
-      if (attendance) { res.status(400).json({ error: 'Already clocked in' }); return; }
+      if (attendance) {
+        if (attendance.attendanceDate === today) {
+          res.status(400).json({ error: 'Already clocked in' });
+        } else {
+          res.status(400).json({ error: `You forgot to sign out on ${attendance.attendanceDate}. Please sign out and enter your hours first.` });
+        }
+        return;
+      }
       attendance = await prisma.attendance.create({
         data: {
           employeeId: employee.id,
@@ -132,15 +141,19 @@ export async function getEmployeeStatus(req: Request, res: Response): Promise<vo
 
   const today = new Date().toISOString().slice(0, 10);
   const attendance = await prisma.attendance.findFirst({
-    where: { employeeId: employee.id, attendanceDate: today, clockOut: null },
+    where: { employeeId: employee.id, clockOut: null },
     include: { breaks: { where: { breakEnd: null } } },
+    orderBy: { clockIn: 'desc' },
   });
+
+  const isToday = attendance?.attendanceDate === today;
 
   res.json({
     employee: { firstName: employee.firstName, lastName: employee.lastName },
-    clockedIn: !!attendance,
-    onBreak: attendance ? attendance.breaks.length > 0 : false,
+    clockedIn: !!attendance && isToday,
+    onBreak: attendance && isToday ? attendance.breaks.length > 0 : false,
     clockInTime: attendance?.clockIn,
+    missedSignOut: attendance && !isToday ? attendance.attendanceDate : null,
   });
 }
 
