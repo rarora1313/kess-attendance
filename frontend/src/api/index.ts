@@ -27,8 +27,8 @@ export const getAttendance = (params?: object) => api.get('/attendance', { param
 export const correctAttendance = (id: number, data: object) => api.patch(`/attendance/${id}`, data).then(r => r.data);
 
 // Kiosk
-export const kioskAction = (pin: string, action: string, branchId?: number, photo?: string | null) =>
-  api.post('/kiosk/action', { pin, action, branchId, photo }).then(r => r.data);
+export const kioskAction = (pin: string, action: string, branchId?: number, photo?: string | null, extra?: object) =>
+  api.post('/kiosk/action', { pin, action, branchId, photo, ...extra }).then(r => r.data);
 export const getEmployeeStatus = (pin: string) =>
   api.get('/kiosk/status', { params: { pin } }).then(r => r.data);
 

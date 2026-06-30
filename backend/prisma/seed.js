@@ -66,6 +66,14 @@ async function main() {
     },
   });
 
+  // Close any open sessions from previous days (missed sign-outs)
+  const today = new Date().toISOString().slice(0, 10);
+  const closed = await prisma.attendance.updateMany({
+    where: { clockOut: null, attendanceDate: { lt: today } },
+    data: { clockOut: new Date(), totalHours: 0 },
+  });
+  if (closed.count > 0) console.log(`Closed ${closed.count} missed sign-out(s) — admin should correct hours.`);
+
   console.log('Seed complete.');
 }
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { kioskAction, getEmployeeStatus, kioskSubmitTimesheet } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 
-type KioskState = 'idle' | 'identified' | 'success' | 'clockOutSummary' | 'logTask' | 'taskDone' | 'error';
+type KioskState = 'idle' | 'identified' | 'success' | 'missedSignoutForm' | 'missedSignoutDone' | 'clockOutSummary' | 'logTask' | 'taskDone' | 'error';
 
 interface EmployeeStatus {
   employee: { firstName: string; lastName: string };
@@ -23,6 +23,7 @@ export default function Kiosk() {
   const [clock, setClock] = useState(new Date());
   const [cameraReady, setCameraReady] = useState(false);
   const [shiftHours, setShiftHours] = useState<number | null>(null);
+  const [missedHours, setMissedHours] = useState('');
   const [clockOutInfo, setClockOutInfo] = useState<{ clockInTime: string; clockOutTime: string; breakMinutes: number } | null>(null);
   const [taskForm, setTaskForm] = useState({ taskName: '', hoursWorked: '', description: '' });
   const [taskError, setTaskError] = useState('');
@@ -46,7 +47,7 @@ export default function Kiosk() {
       const t = setTimeout(resetToIdle, 5000);
       return () => clearTimeout(t);
     }
-    if (state === 'taskDone') {
+    if (state === 'taskDone' || state === 'missedSignoutDone') {
       const t = setTimeout(resetToIdle, 3000);
       return () => clearTimeout(t);
     }
@@ -93,6 +94,7 @@ export default function Kiosk() {
     setCapturedPhoto(null);
     setShiftHours(null);
     setClockOutInfo(null);
+    setMissedHours('');
     setTaskForm({ taskName: '', hoursWorked: '', description: '' });
     setTaskError('');
   }
@@ -167,7 +169,7 @@ export default function Kiosk() {
 
   const timeStr = clock.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateStr = clock.toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const hideCamera = state === 'logTask' || state === 'taskDone' || state === 'clockOutSummary';
+  const hideCamera = state === 'logTask' || state === 'taskDone' || state === 'clockOutSummary' || state === 'missedSignoutForm' || state === 'missedSignoutDone';
 
   function fmtTime(iso: string) {
     return new Date(iso).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -284,11 +286,11 @@ export default function Kiosk() {
                     <p className="text-orange-600 text-xs mt-1">
                       Your last shift on <span className="font-semibold">{new Date(empStatus.missedSignOut + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</span> was not closed.
                     </p>
-                    <p className="text-orange-500 text-xs mt-1">Please sign out and enter your hours first.</p>
+                    <p className="text-orange-500 text-xs mt-1">Enter your hours first, then you can sign in.</p>
                   </div>
-                  <button onClick={() => handleAction('clockOut')}
+                  <button onClick={() => setState('missedSignoutForm')}
                     className="w-full py-4 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition-colors">
-                    Sign Out & Enter Hours
+                    Enter Hours to Sign Out
                   </button>
                   <button onClick={resetToIdle}
                     className="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition-colors">
@@ -339,6 +341,56 @@ export default function Kiosk() {
               <div className="text-4xl mb-2">✓</div>
               <p className="text-base font-semibold text-green-700">{message}</p>
               <p className="text-xs text-gray-400 mt-2">Returning in 5 seconds…</p>
+            </div>
+          )}
+
+          {/* MISSED SIGN-OUT — enter hours first */}
+          {state === 'missedSignoutForm' && empStatus && (
+            <>
+              <div className="text-center mb-4">
+                <p className="text-sm font-semibold text-orange-600">Missed shift on {empStatus.missedSignOut ? new Date(empStatus.missedSignOut + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}</p>
+                <p className="text-xs text-gray-500 mt-1">How many hours did you work that day?</p>
+              </div>
+              <div className="bg-orange-50 rounded-xl p-4 text-center mb-4">
+                <p className="text-xs text-gray-500 mb-1">Hours worked</p>
+                <input
+                  type="number" step="0.25" min="0" max="24"
+                  className="w-32 text-center text-3xl font-bold text-orange-600 bg-transparent border-b-2 border-orange-400 focus:outline-none focus:border-orange-600"
+                  value={missedHours}
+                  onChange={e => setMissedHours(e.target.value)}
+                  placeholder="0"
+                />
+                <p className="text-xs text-gray-400 mt-1">hrs</p>
+              </div>
+              {taskError && <p className="text-red-500 text-xs mb-3 text-center">{taskError}</p>}
+              <div className="flex gap-2">
+                <button onClick={async () => {
+                  if (!missedHours) { setTaskError('Please enter hours.'); return; }
+                  try {
+                    await kioskAction(pin, 'fixMissedSignout', undefined, null, { hoursWorked: missedHours });
+                    setState('missedSignoutDone');
+                  } catch {
+                    setTaskError('Could not save. Please try again.');
+                  }
+                }}
+                  className="flex-1 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition-colors">
+                  Submit & Sign Out
+                </button>
+                <button onClick={resetToIdle}
+                  className="flex-1 py-3 border-2 border-gray-200 text-gray-400 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* MISSED SIGN-OUT DONE */}
+          {state === 'missedSignoutDone' && (
+            <div className="text-center py-6">
+              <div className="text-4xl mb-2">✓</div>
+              <p className="font-semibold text-green-700">Hours saved!</p>
+              <p className="text-sm text-gray-500 mt-1">You can now sign in for today.</p>
+              <p className="text-xs text-gray-400 mt-3">Returning in 3 seconds…</p>
             </div>
           )}
 

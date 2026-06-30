@@ -107,6 +107,17 @@ export async function kioskAction(req: Request, res: Response): Promise<void> {
       await prisma.attendance.update({ where: { id: attendance.id }, data: updateData });
       break;
     }
+    case 'fixMissedSignout': {
+      if (!attendance) { res.status(400).json({ error: 'No open session found' }); return; }
+      if (attendance.attendanceDate === today) { res.status(400).json({ error: 'Use regular sign out for today' }); return; }
+      const hoursWorked = Math.max(0, parseFloat(req.body.hoursWorked) || 0);
+      const clockOut = new Date(attendance.clockIn.getTime() + hoursWorked * 3600000);
+      await prisma.attendance.update({
+        where: { id: attendance.id },
+        data: { clockOut, totalHours: hoursWorked },
+      });
+      break;
+    }
     default:
       res.status(400).json({ error: 'Invalid action' }); return;
   }
