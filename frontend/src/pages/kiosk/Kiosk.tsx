@@ -122,6 +122,13 @@ export default function Kiosk() {
     setTaskForm({ taskName: '', hoursWorked: '', description: '' });
     setTaskError('');
     setLoading(false);
+    // Restart camera stream for next person
+    if (videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    } else {
+      startCamera();
+    }
   }
 
   async function handlePinSubmit(pinToUse: string) {
@@ -521,9 +528,6 @@ export default function Kiosk() {
         </div>
       </div>
 
-      <p className="mt-2 text-orange-200 text-xs">
-        <a href="/login" className="underline">Admin / Manager Login</a>
-      </p>
     </div>
   );
 }
