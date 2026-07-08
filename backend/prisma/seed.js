@@ -67,7 +67,7 @@ async function main() {
   });
 
   // Close any open sessions from previous days (missed sign-outs)
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland' }).format(new Date());
   const closed = await prisma.attendance.updateMany({
     where: { clockOut: null, attendanceDate: { lt: today } },
     data: { clockOut: new Date(), totalHours: 0 },

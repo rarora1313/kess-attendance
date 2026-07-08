@@ -8,6 +8,11 @@ const prisma = new PrismaClient();
 const PHOTOS_DIR = path.join(__dirname, '../../uploads/photos');
 fs.mkdirSync(PHOTOS_DIR, { recursive: true });
 
+// Always use NZ local date (UTC+12/+13) so attendanceDate matches what staff see on the clock
+function nzToday(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland' }).format(new Date());
+}
+
 function savePhoto(base64: string, filename: string): string | null {
   try {
     const data = base64.replace(/^data:image\/\w+;base64,/, '');
@@ -30,7 +35,7 @@ export async function kioskAction(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = nzToday();
 
   // Find any open session — including previous days (missed sign-out)
   let attendance = await prisma.attendance.findFirst({
@@ -150,7 +155,7 @@ export async function getEmployeeStatus(req: Request, res: Response): Promise<vo
   const employee = await prisma.employee.findUnique({ where: { pin: String(pin) } });
   if (!employee) { res.status(404).json({ error: 'Not found' }); return; }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = nzToday();
   const attendance = await prisma.attendance.findFirst({
     where: { employeeId: employee.id, clockOut: null },
     include: { breaks: { where: { breakEnd: null } } },
@@ -175,7 +180,7 @@ export async function listAttendance(req: AuthRequest, res: Response): Promise<v
     ? req.user.branchId
     : req.query.branchId ? Number(req.query.branchId) : undefined;
   const date = req.query.date as string | undefined;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = nzToday();
 
   const records = await prisma.attendance.findMany({
     where: {
