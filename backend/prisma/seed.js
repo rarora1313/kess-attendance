@@ -66,6 +66,20 @@ async function main() {
     },
   });
 
+  // Fix existing records that were saved with wrong UTC date instead of NZ date
+  await prisma.$executeRaw`
+    UPDATE "Attendance"
+    SET "attendanceDate" = TO_CHAR(
+      ("clockIn" AT TIME ZONE 'UTC') AT TIME ZONE 'Pacific/Auckland',
+      'YYYY-MM-DD'
+    )
+    WHERE "attendanceDate" != TO_CHAR(
+      ("clockIn" AT TIME ZONE 'UTC') AT TIME ZONE 'Pacific/Auckland',
+      'YYYY-MM-DD'
+    )
+  `;
+  console.log('Fixed attendance dates to NZ timezone.');
+
   // Close any open sessions from previous days (missed sign-outs)
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland' }).format(new Date());
   const closed = await prisma.attendance.updateMany({
