@@ -66,6 +66,41 @@ async function main() {
     },
   });
 
+  // One-time correction: add missed breaks for Shashi (30min) and Dev (1hr) from yesterday
+  const yesterday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland' }).format(
+    new Date(Date.now() - 86400000)
+  );
+
+  const shashiRecord = await prisma.attendance.findFirst({
+    where: { employee: { employeeNumber: 'KHB002' }, attendanceDate: yesterday },
+    orderBy: { clockIn: 'desc' },
+  });
+  if (shashiRecord && shashiRecord.totalBreakMinutes === 0) {
+    await prisma.attendance.update({
+      where: { id: shashiRecord.id },
+      data: {
+        totalBreakMinutes: 30,
+        totalHours: Math.max(0, parseFloat(((shashiRecord.totalHours ?? 0) - 0.5).toFixed(2))),
+      },
+    });
+    console.log('Corrected Shashi break: 30 min');
+  }
+
+  const devRecord = await prisma.attendance.findFirst({
+    where: { employee: { employeeNumber: 'KHB004' }, attendanceDate: yesterday },
+    orderBy: { clockIn: 'desc' },
+  });
+  if (devRecord && devRecord.totalBreakMinutes === 0) {
+    await prisma.attendance.update({
+      where: { id: devRecord.id },
+      data: {
+        totalBreakMinutes: 60,
+        totalHours: Math.max(0, parseFloat(((devRecord.totalHours ?? 0) - 1).toFixed(2))),
+      },
+    });
+    console.log('Corrected Dev break: 60 min');
+  }
+
   // Fix existing records that were saved with wrong UTC date instead of NZ date
   await prisma.$executeRaw`
     UPDATE "Attendance"
