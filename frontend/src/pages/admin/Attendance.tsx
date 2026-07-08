@@ -31,9 +31,21 @@ function Flag({ color, text }: { color: string; text: string }) {
   );
 }
 
+function nzToday() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland' }).format(new Date());
+}
+
+function fmtHours(h: number): string {
+  const hrs = Math.floor(h);
+  const mins = Math.round((h - hrs) * 60);
+  if (hrs === 0) return `${mins}m`;
+  if (mins === 0) return `${hrs}h`;
+  return `${hrs}h ${mins}m`;
+}
+
 export default function AdminAttendance() {
   const qc = useQueryClient();
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(nzToday());
   const [branchId, setBranchId] = useState('');
   const [editing, setEditing] = useState<any>(null);
 
@@ -111,7 +123,7 @@ export default function AdminAttendance() {
                     </td>
                     <td className="px-4 py-3 text-gray-500">{a.totalBreakMinutes}m</td>
                     <td className="px-4 py-3 font-medium">
-                      {a.totalHours != null ? `${a.totalHours.toFixed(2)}h` : '—'}
+                      {a.totalHours != null ? fmtHours(a.totalHours) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       {a.isLate && <Flag color="bg-amber-100 text-amber-700" text={`Late ${a.lateByMinutes}m`} />}
