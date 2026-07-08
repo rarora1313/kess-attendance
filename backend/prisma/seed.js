@@ -66,16 +66,20 @@ async function main() {
     },
   });
 
-  // One-time correction: add missed breaks for Shashi (30min) and Dev (1hr) from yesterday
-  const yesterday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland' }).format(
-    new Date(Date.now() - 86400000)
-  );
+  // One-time correction: add missed breaks for Shashi (30min) and Dev (1hr)
+  // Find their most recent completed shift with no break logged (within last 7 days)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
 
   const shashiRecord = await prisma.attendance.findFirst({
-    where: { employee: { employeeNumber: 'KHB002' }, attendanceDate: yesterday },
+    where: {
+      employee: { employeeNumber: 'KHB002' },
+      clockOut: { not: null },
+      totalBreakMinutes: 0,
+      attendanceDate: { gte: sevenDaysAgo },
+    },
     orderBy: { clockIn: 'desc' },
   });
-  if (shashiRecord && shashiRecord.totalBreakMinutes === 0) {
+  if (shashiRecord) {
     await prisma.attendance.update({
       where: { id: shashiRecord.id },
       data: {
@@ -83,14 +87,19 @@ async function main() {
         totalHours: Math.max(0, parseFloat(((shashiRecord.totalHours ?? 0) - 0.5).toFixed(2))),
       },
     });
-    console.log('Corrected Shashi break: 30 min');
+    console.log('Corrected Shashi break: 30 min on', shashiRecord.attendanceDate);
   }
 
   const devRecord = await prisma.attendance.findFirst({
-    where: { employee: { employeeNumber: 'KHB004' }, attendanceDate: yesterday },
+    where: {
+      employee: { employeeNumber: 'KHB004' },
+      clockOut: { not: null },
+      totalBreakMinutes: 0,
+      attendanceDate: { gte: sevenDaysAgo },
+    },
     orderBy: { clockIn: 'desc' },
   });
-  if (devRecord && devRecord.totalBreakMinutes === 0) {
+  if (devRecord) {
     await prisma.attendance.update({
       where: { id: devRecord.id },
       data: {
@@ -98,7 +107,7 @@ async function main() {
         totalHours: Math.max(0, parseFloat(((devRecord.totalHours ?? 0) - 1).toFixed(2))),
       },
     });
-    console.log('Corrected Dev break: 60 min');
+    console.log('Corrected Dev break: 60 min on', devRecord.attendanceDate);
   }
 
   // Fix existing records that were saved with wrong UTC date instead of NZ date
