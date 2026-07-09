@@ -121,10 +121,11 @@ async function main() {
       data: {
         clockIn:  new Date('2026-07-07T21:00:00.000Z'), // 9 AM NZST
         clockOut: new Date('2026-07-08T06:00:00.000Z'), // 6 PM NZST
-        totalHours: 9,
+        totalHours: 8.62,
+        totalBreakMinutes: 23,
       },
     });
-    console.log('Corrected Hezal 8 July: 9 AM–6 PM, 9h');
+    console.log('Corrected Hezal 8 July: 9 AM–6 PM, 23 min break, 8h 37m');
   } else {
     const hezalBranch = await prisma.employee.findFirst({ where: { employeeNumber: 'KHB003' } });
     if (hezalBranch) {
@@ -135,11 +136,11 @@ async function main() {
           attendanceDate: '2026-07-08',
           clockIn:  new Date('2026-07-07T21:00:00.000Z'),
           clockOut: new Date('2026-07-08T06:00:00.000Z'),
-          totalHours: 9,
-          totalBreakMinutes: 0,
+          totalHours: 8.62,
+          totalBreakMinutes: 23,
         },
       });
-      console.log('Created Hezal 8 July: 9 AM–6 PM, 9h');
+      console.log('Created Hezal 8 July: 9 AM–6 PM, 23 min break, 8h 37m');
     }
   }
 
