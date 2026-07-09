@@ -110,6 +110,39 @@ async function main() {
     console.log('Corrected Dev break: 60 min on', devRecord.attendanceDate);
   }
 
+  // Correction: Hezal Tuesday 8 July 2026 — 9 AM to 6 PM (9 hrs), NZ time (UTC+12)
+  const hezalTuesday = await prisma.attendance.findFirst({
+    where: { employee: { employeeNumber: 'KHB003' }, attendanceDate: '2026-07-08' },
+    orderBy: { clockIn: 'desc' },
+  });
+  if (hezalTuesday) {
+    await prisma.attendance.update({
+      where: { id: hezalTuesday.id },
+      data: {
+        clockIn:  new Date('2026-07-07T21:00:00.000Z'), // 9 AM NZST
+        clockOut: new Date('2026-07-08T06:00:00.000Z'), // 6 PM NZST
+        totalHours: 9,
+      },
+    });
+    console.log('Corrected Hezal 8 July: 9 AM–6 PM, 9h');
+  } else {
+    const hezalBranch = await prisma.employee.findFirst({ where: { employeeNumber: 'KHB003' } });
+    if (hezalBranch) {
+      await prisma.attendance.create({
+        data: {
+          employeeId: hezalBranch.id,
+          branchId: hezalBranch.branchId,
+          attendanceDate: '2026-07-08',
+          clockIn:  new Date('2026-07-07T21:00:00.000Z'),
+          clockOut: new Date('2026-07-08T06:00:00.000Z'),
+          totalHours: 9,
+          totalBreakMinutes: 0,
+        },
+      });
+      console.log('Created Hezal 8 July: 9 AM–6 PM, 9h');
+    }
+  }
+
   // Fix existing records that were saved with wrong UTC date instead of NZ date
   await prisma.$executeRaw`
     UPDATE "Attendance"
